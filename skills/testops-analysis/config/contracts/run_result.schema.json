@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "run_result.schema.json",
+  "title": "Результат разбора прогона TestOps по команде",
+  "description": "Один файл = один прогон одной команды. Пишет scripts/publish_results.py; читает агент и fetch_results.py. Причины падений (causes) заполняются только фазами rerun/deep (suspected/confirmed) — на первичном скане массив пуст.",
+  "type": "object",
+  "required": ["schema_version", "team", "test_type", "launch", "stats", "tests"],
+  "properties": {
+    "schema_version": {"type": "integer", "enum": [1]},
+    "team": {"type": "string", "description": "Канон команды (имя папки эталона), например TX-T9"},
+    "test_type": {"type": "string", "enum": ["HF", "QG", "RM"]},
+    "launch": {
+      "type": "object",
+      "required": ["id", "scanned_at"],
+      "properties": {
+        "id": {"type": "integer"},
+        "name": {"type": "string"},
+        "scanned_at": {"type": "string", "description": "ISO-8601, когда сделан скан"},
+        "complete": {"type": "boolean", "description": "scan_manifest.complete — доверенность цифр"},
+        "tail_checked": {"type": "boolean", "description": "пройден гейт хвоста"},
+        "etalon_overlap_pct": {"type": "number", "description": "покрытие запуска эталоном, %"},
+        "new_tests": {"type": "integer", "description": "тесты команды вне эталона"},
+        "artifact": {"type": "string", "description": "путь артефактов относительно ~/.qa-artifacts"}
+      },
+      "additionalProperties": true
+    },
+    "rerun": {
+      "type": ["object", "null"],
+      "description": "Фаза 2: результаты перезапуска; null — рерана не было",
+      "required": ["launch_id"],
+      "properties": {
+        "launch_id": {"type": "integer"},
+        "analysed_at": {"type": "string"},
+        "gate_ok": {"type": "boolean", "description": "сходимость классификации (group_sum == items)"},
+        "counts": {"type": "object", "description": "failed_again/by_category/by_owner/by_confidence"},
+        "healed": {"type": "integer"},
+        "absent": {"type": "integer"},
+        "skipped": {"type": "integer"}
+      },
+      "additionalProperties": true
+    },
+    "stats": {
+      "type": "object",
+      "required": ["total", "passed", "failed", "broken", "skipped", "nonpass"],
+      "properties": {
+        "total": {"type": "integer"},
+        "passed": {"type": "integer"},
+        "failed": {"type": "integer"},
+        "broken": {"type": "integer"},
+        "skipped": {"type": "integer"},
+        "nonpass": {"type": "integer", "description": "уникальных номеров с не-PASS результатом"},
+        "pass_rate": {"type": "number"},
+        "not_found": {"type": "integer", "description": "номера эталона, отсутствовавшие в запуске"},
+        "new_tests": {"type": "integer"}
+      },
+      "additionalProperties": true
+    },
+    "causes_summary": {
+      "type": "object",
+      "description": "Сколько тестов пришлось на каждую категорию причин в этом прогоне",
+      "additionalProperties": {"type": "integer"}
+    },
+    "tests": {
+      "type": "array",
+      "description": "Только НЕ-PASS тесты (и вылечившиеся после рерана). Полные цифры — в stats",
+      "items": {
+        "type": "object",
+        "required": ["number", "status"],
+        "properties": {
+          "number": {"type": "string", "description": "Номер теста БЕЗ @, например 39.02.15.15"},
+          "status": {"type": "string", "enum": ["FAIL", "BROKEN", "SKIP", "PASS"]},
+          "results": {"type": "integer", "description": "строк результатов (Examples учтены)"},
+          "nonpass": {"type": "integer"},
+          "rerun": {
+            "type": "string",
+            "enum": ["failed_again", "healed", "skipped", "absent", "not_rerun"],
+            "description": "Фаза 2: поведение теста на перезапуске"
+          },
+          "causes": {
+            "type": "array",
+            "description": "Причины падения; их может быть несколько (разные Examples/разные дефекты). Пусто, если фазы 2–3 не выполнялись",
+            "items": {
+              "type": "object",
+              "required": ["category", "cluster", "status"],
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "enum": ["infra", "env", "locator", "testcode", "product", "testdata", "unknown"],
+                  "description": "Категория из config/classify_rules.json"
+                },
+                "cluster": {"type": "string", "description": "Ключ семантического кластера или error_class"},
+                "cluster_label": {"type": "string"},
+                "owner": {"type": "string", "enum": ["система", "автотест", "дефект", "спор", ""]},
+                "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
+                "status": {
+                  "type": "string",
+                  "enum": ["suspected", "confirmed", "refuted"],
+                  "description": "confirmed — есть подтверждение (git, дефект, ручная проверка); suspected — только message/реран"
+                },
+                "summary": {"type": "string", "description": "Текст сообщения/причины, усечённый"},
+                "root_cause": {"type": "string", "description": "xpath:/host:/http: — конкретика для фикса"},
+                "fix": {"type": "string", "description": "Что делать (из правил классификации)"},
+                "evidence": {"type": "array", "items": {"type": "string"},
+                             "description": "Следы: message:..., rerun:..., git:..., defect:..."},
+                "first_seen": {"type": "string"},
+                "last_seen": {"type": "string"},
+                "seen_count": {"type": "integer"},
+                "launches": {"type": "array", "items": {"type": "integer"}}
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

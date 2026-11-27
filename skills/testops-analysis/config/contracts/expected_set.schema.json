@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "expected_set.schema.json",
+  "title": "expected_set.json — снимок прогона по одной команде",
+  "description": "Пишется scan_testops.py в launches/{launch_id}/{team}/. Источник истины о том, кто есть в прогоне и с каким статусом.",
+  "type": "object",
+  "required": [
+    "launch_id",
+    "teams",
+    "expected_numbers",
+    "statuses",
+    "counts",
+    "artifacts_path"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "launch_id": {
+      "type": "integer"
+    },
+    "launch_name": {
+      "type": "string"
+    },
+    "teams": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "description": "Команды, вошедшие в снимок (после team_canon)"
+    },
+    "etalon_path": {
+      "type": "string",
+      "description": "Путь к использованному эталону"
+    },
+    "tester_tag": {
+      "type": "string",
+      "description": "Значение --tester-tag, пусто в режиме команды"
+    },
+    "expected_numbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Номера тестов, прошедшие фильтр (без @)"
+    },
+    "statuses": {
+      "type": "object",
+      "description": "номер -> агрегат по всем результатам",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "status": {
+            "enum": [
+              "passed",
+              "failed",
+              "broken",
+              "skipped"
+            ]
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "result_ids": {
+            "type": "array"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "origin": {
+            "enum": [
+              "team",
+              "tag",
+              "both",
+              ""
+            ]
+          }
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "required": [
+        "total",
+        "passed",
+        "failed",
+        "broken",
+        "skipped",
+        "nonpass",
+        "pass_rate"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "total": {
+          "type": "integer"
+        },
+        "passed": {
+          "type": "integer"
+        },
+        "failed": {
+          "type": "integer"
+        },
+        "broken": {
+          "type": "integer"
+        },
+        "skipped": {
+          "type": "integer"
+        },
+        "nonpass": {
+          "type": "integer"
+        },
+        "pass_rate": {
+          "type": "number"
+        }
+      }
+    },
+    "teams_stats": {
+      "type": "object",
+      "description": "Per-team статистика при --per-team"
+    },
+    "launch_team_numbers_count": {
+      "type": "integer",
+      "description": "Уникальных номеров своей команды, найденных в запуске ДО фильтра по эталону"
+    },
+    "etalon_total": {
+      "type": "integer",
+      "description": "Сколько номеров в эталоне (знаменатель полноты охвата)"
+    },
+    "etalon_covered": {
+      "type": "integer",
+      "description": "Сколько номеров эталона реально встретилось в запуске"
+    },
+    "etalon_coverage_etalon_pct": {
+      "type": "number",
+      "description": "🔴 Доля эталона, прогнанная в запуске. <95% => прогон неполный"
+    },
+    "etalon_missing_numbers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Номера эталона, отсутствовавшие в прогоне (не запускались)"
+    },
+    "artifacts_path": {
+      "type": "string",
+      "description": "Абсолютный путь папки команды; читается режимом классификации перезапуска"
+    },
+    "new_tests": {
+      "type": "array",
+      "description": "Тесты команды, которых нет в эталоне (в файл эталона автоматически не входят; упавшие из них идут в @-список перезапуска)",
+      "items": {
+        "type": "object",
+        "required": [
+          "number"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "number": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "team": {
+            "type": "string"
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "results_index.schema.json",
+  "title": "Индекс результатов разбора по команде",
+  "description": "Компактный вход для агента: последние прогоны + топ активных причин. Пишет scripts/publish_results.py в results/<TEAM>/index.json.",
+  "type": "object",
+  "required": ["schema_version", "team", "updated_at", "launches", "causes_top"],
+  "properties": {
+    "schema_version": {"type": "integer", "enum": [1]},
+    "team": {"type": "string"},
+    "updated_at": {"type": "string"},
+    "totals": {"type": "object", "additionalProperties": true},
+    "launches": {
+      "type": "array",
+      "description": "Последние прогоны, новые сверху (ограничено INDEX_LIMIT)",
+      "items": {
+        "type": "object",
+        "required": ["launch_id", "test_type", "file"],
+        "properties": {
+          "launch_id": {"type": "integer"},
+          "test_type": {"type": "string", "enum": ["HF", "QG", "RM"]},
+          "launch_name": {"type": "string"},
+          "scanned_at": {"type": "string"},
+          "file": {"type": "string", "description": "путь относительно results/<TEAM>/"},
+          "stats": {"type": "object", "additionalProperties": true},
+          "rerun_launch_id": {"type": ["integer", "null"]},
+          "causes": {"type": "object", "additionalProperties": {"type": "integer"}}
+        },
+        "additionalProperties": true
+      }
+    },
+    "causes_top": {
+      "type": "array",
+      "description": "Топ активных кластеров причин (по числу вхождений)",
+      "items": {
+        "type": "object",
+        "required": ["cluster", "occurrences"],
+        "properties": {
+          "cluster": {"type": "string"},
+          "label": {"type": "string"},
+          "category": {"type": "string"},
+          "owner": {"type": "string"},
+          "status": {"type": "string", "enum": ["suspected", "confirmed", "refuted"]},
+          "occurrences": {"type": "integer"},
+          "tests": {"type": "integer"},
+          "last_seen": {"type": "string"},
+          "fix": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

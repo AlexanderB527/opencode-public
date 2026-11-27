@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dispatch.schema.json",
+  "title": "dispatch.json — итог раздачи перезапусков по командным джобам",
+  "description": "Пишется dispatch_team_reruns.py в launches/{launch_id}/dispatch.json. Читается render_markdown.py --dispatch.",
+  "type": "object",
+  "required": ["launch_id", "env", "parallel", "rerun", "teams"],
+  "additionalProperties": false,
+  "properties": {
+    "launch_id": { "type": "integer" },
+    "dispatch_at": { "type": "string", "description": "ISO-время раздачи" },
+    "env": { "type": "string", "description": "Стенд (qa)" },
+    "parallel": { "type": "string", "description": "Потоков; боевое значение 15" },
+    "rerun": { "type": "string", "description": "Автоперезапуск упавшего; боевое 1" },
+    "summary": {
+      "type": "object",
+      "description": "Счётчики раздачи",
+      "additionalProperties": false,
+      "properties": {
+        "teams_total": { "type": "integer" },
+        "teams_triggered": { "type": "integer" },
+        "teams_skipped_empty": { "type": "integer" },
+        "teams_no_scan": { "type": "integer" },
+        "teams_unmapped": { "type": "integer" },
+        "teams_error": { "type": "integer" },
+        "teams_disabled": { "type": "integer" },
+        "teams_merged": { "type": "integer" },
+        "tests_total": { "type": "integer" },
+        "tests_dispatched": { "type": "integer" }
+      }
+    },
+    "teams": {
+      "type": "array",
+      "description": "По одной записи на команду; статус определяет секцию страницы",
+      "items": {
+        "type": "object",
+        "required": ["team", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "team": { "type": "string", "description": "Канон команды" },
+          "folder": { "type": "string", "description": "Папка снимка" },
+          "folders": { "type": "array", "items": { "type": "string" } },
+          "job": { "type": ["string", "null"], "description": "fullname джобы" },
+          "count": { "type": "integer", "description": "Число тестов в @-списке" },
+          "tags": { "type": "string", "description": "@-список через ПРОБЕЛ" },
+          "status": {
+            "type": "string",
+            "description": "Контракт статусов; неизвестное значение = проблема",
+            "enum": [
+              "triggered", "merged_scan", "would_trigger",
+              "skipped_empty", "already_dispatched", "disabled",
+              "no_scan", "unmapped", "duplicate_scan", "error"
+            ]
+          },
+          "queue_url": { "type": ["string", "null"] },
+          "build_url": { "type": ["string", "null"] },
+          "error": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

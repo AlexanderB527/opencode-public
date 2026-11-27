@@ -1,0 +1,16 @@
+node_modules/
+__pycache__/
+*.py[cod]
+gui-experimental.cjs
+.env
+.env.*
+config.json
+team_jobs.json
+autotesters.json
+.qa-artifacts/
+etalons/
+*.pem
+*.key
+*.p12
+*.pfx
+*.log

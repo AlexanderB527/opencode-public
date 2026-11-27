@@ -1,0 +1,22 @@
+{
+  "name": "opencode-testops-analyzer",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Разбор автотестов TestOps: панель (ссылка + команда + тег + QG/RM/HF + основной/реран) и tool для модели",
+  "exports": {
+    ".": "./index.ts",
+    "./server": "./index.ts",
+    "./gui-experimental": "./gui-experimental.cjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.ts",
+    "src",
+    "gui-experimental.cjs",
+    "README.md"
+  ],
+  "dependencies": {
+    "@opencode/plugin": "2.3.2"
+  }
+}

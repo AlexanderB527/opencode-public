@@ -1,0 +1,22 @@
+{
+  "name": "opencode-plugin-qa-artifact-guard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "OpenCode-плагин: fail-closed защита артефактов разбора TestOps (скилл testops-analysis) от ручной подмены агентом",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "index.ts",
+    "lib",
+    "README.md"
+  ],
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "qa",
+    "testops"
+  ],
+  "license": "UNLICENSED"
+}

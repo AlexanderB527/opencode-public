@@ -1,0 +1,124 @@
+{
+  "_comment": "Правила классификации сбоев РЕРАНА (данные, не код). Отличаются от правил первичного разбора: главный сигнал — trace (backtrace результата), затем message. match — список regex (search). Порядок правил = приоритет. key = идентификатор кластера.",
+  "owners": {
+    "система": "Стенд/бэкенд/сеть: чинит инфраструктура или владелец сервиса",
+    "автотест": "Код теста, локатор, page object: чинит QA-автоматизатор",
+    "дефект": "Логика продукта не соответствует ожиданиям: заводить дефект",
+    "триаж": "Причина не установлена по данным API: нужен точечный разбор"
+  },
+  "trace_rules": [
+    {
+      "key": "backend_soap_fault",
+      "label": "Бэкенд: SOAP Fault в ответе сервиса",
+      "owner": "система",
+      "category": "env",
+      "match": ["soap_fault\\.rb", "soapenv:Server", "SOAP::Fault", "Savon::SOAPFault"]
+    },
+    {
+      "key": "backend_http_5xx",
+      "label": "Бэкенд: HTTP 5xx от сервиса",
+      "owner": "система",
+      "category": "env",
+      "match": ["500 Internal Server Error", "502 Bad Gateway", "503 Service Unavailable", "504 Gateway Timeout"]
+    },
+    {
+      "key": "infra_timeout",
+      "label": "Инфраструктура: таймаут TCP/выполнения",
+      "owner": "система",
+      "category": "infra",
+      "match": ["Failed to open TCP connection", "execution expired", "Net::ReadTimeout", "Connection timed out", "getaddrinfo", "Connection reset by peer", "Errno::ECONNREFUSED"]
+    },
+    {
+      "key": "autotest_locator",
+      "label": "Автотест: элемент не найден (локатор)",
+      "owner": "автотест",
+      "category": "locator",
+      "match": ["capybara-[\\d.]*/lib/capybara/node/finders", "Capybara::ElementNotFound", "Selenium::WebDriver::Error::NoSuchElementError", "element click intercepted"]
+    },
+    {
+      "key": "autotest_nil",
+      "label": "Автотест: NoMethodError по nil (объект не создан/не прогружен)",
+      "owner": "автотест",
+      "category": "testcode",
+      "match": ["NoMethodError", "for nil:NilClass", "undefined method"]
+    },
+    {
+      "key": "autotest_frame",
+      "label": "Автотест: переключение фрейма",
+      "owner": "автотест",
+      "category": "testcode",
+      "match": ["No node with given id found", "не переключились на фрейм"]
+    }
+  ],
+  "message_rules": [
+    {
+      "key": "backend_soap_fault",
+      "label": "Бэкенд: SOAP Fault в ответе сервиса",
+      "owner": "система",
+      "category": "env",
+      "match": ["soapenv:Server", "SOAP::Fault", "Savon::SOAPFault"]
+    },
+    {
+      "key": "backend_http_5xx",
+      "label": "Бэкенд: HTTP 5xx от сервиса",
+      "owner": "система",
+      "category": "env",
+      "match": ["500 Internal Server Error", "502 Bad Gateway", "504 Gateway Timeout"]
+    },
+    {
+      "key": "infra_timeout",
+      "label": "Инфраструктура: таймаут TCP/выполнения",
+      "owner": "система",
+      "category": "infra",
+      "match": ["Failed to open TCP connection", "execution expired", "Net::ReadTimeout", "Connection timed out", "getaddrinfo", "Connection reset by peer"]
+    },
+    {
+      "key": "autotest_locator",
+      "label": "Автотест: элемент не найден (локатор)",
+      "owner": "автотест",
+      "category": "locator",
+      "match": ["Unable to find visible xpath", "Unable to find visible field", "Unable to find visible link", "Unable to find visible button", "Unable to find css", "expected to find visible", "Capybara::ElementNotFound", "element click intercepted", "Ambiguous match", "elements matching"]
+    },
+    {
+      "key": "autotest_nil",
+      "label": "Автотест: NoMethodError по nil (объект не создан/не прогружен)",
+      "owner": "автотест",
+      "category": "testcode",
+      "match": ["undefined method", "for nil:NilClass", "NoMethodError"]
+    },
+    {
+      "key": "testdata_mdm_login",
+      "label": "Тестовые данные: оператор/пользователь не найден на стенде",
+      "owner": "триаж",
+      "category": "testdata",
+      "match": ["Некорректный логин оператора", "не найден в MDM", "Не удалось создать клиента", "отсутствует в таблице"]
+    },
+    {
+      "key": "product_assertion",
+      "label": "Продукт: несовпадение ожидаемого и фактического",
+      "owner": "дефект",
+      "category": "product",
+      "match": ["expected:.*got:", "AssertionError", "ОР:.*ФР:", "не соответствует", "не совпадает"]
+    },
+    {
+      "key": "product_not_appear",
+      "label": "Продукт: ожидаемая сущность не появилась",
+      "owner": "дефект",
+      "category": "product",
+      "match": ["не появилась", "не отображается", "отсутствует в списке", "присутствует в списке"]
+    }
+  ],
+  "default": {
+    "key": "unclassified",
+    "label": "Не классифицировано (нужен триаж)",
+    "owner": "триаж",
+    "category": "unknown"
+  },
+  "_confidence_comment": "score = сумма evidence: message=1, trace=1, own_frame=1, git=2. score>=2 -> high, 1 -> medium, 0 -> low (триаж).",
+  "confidence_weights": {
+    "message": 1,
+    "trace": 1,
+    "own_frame": 1,
+    "git": 2
+  }
+}

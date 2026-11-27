@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "case_meta.schema.json",
+  "title": "case_meta.json — состояние прогона (единый контракт всех режимов)",
+  "description": "Один файл на пару launch_id+team: ~/.qa-artifacts/launches/{launch_id}/{team}/case_meta.json. Секции пишутся разными режимами и не перезаписывают друг друга.",
+  "type": "object",
+  "required": ["run"],
+  "additionalProperties": false,
+  "properties": {
+    "run": {
+      "type": "object",
+      "description": "Заполняется режимом разбора запуска после CP3.",
+      "required": ["launch_id", "team", "page1_id", "parent_page_id", "artifacts_path"],
+      "additionalProperties": false,
+      "properties": {
+        "launch_id": { "type": "integer", "description": "ID первичного запуска TestOps" },
+        "launch_name": { "type": "string", "description": "launch.name — единственный источник заголовков" },
+        "team": { "type": "string", "description": "Каноническое имя команды (team_canon.resolve_canon)" },
+        "page1_id": { "type": "string", "description": "ID страницы «Анализ прогона …» в Confluence" },
+        "parent_page_id": { "type": "integer", "description": "ID родительской страницы-архива" },
+        "artifacts_path": { "type": "string", "description": "Абсолютный путь папки команды; копия из expected_set.json" },
+        "published_at": { "type": "string", "description": "ISO-время публикации" }
+      }
+    },
+    "dispatch": {
+      "type": ["object", "null"],
+      "description": "Заполняется режимом раздачи перезапусков после запуска сборок.",
+      "required": ["jenkins_jobs"],
+      "additionalProperties": false,
+      "properties": {
+        "dispatched_at": { "type": "string", "description": "ISO-время раздачи" },
+        "jenkins_jobs": {
+          "type": "array",
+          "description": "По одной записи на команду, куда ушёл перезапуск",
+          "items": {
+            "type": "object",
+            "required": ["team", "job"],
+            "additionalProperties": false,
+            "properties": {
+              "team": { "type": "string" },
+              "job": { "type": "string", "description": "fullname джобы в Jenkins" },
+              "build_url": { "type": ["string", "null"], "description": "Ссылка на сборку" },
+              "tests": { "type": "integer", "description": "Число тестов в @-списке" }
+            }
+          }
+        }
+      }
+    },
+    "rerun": {
+      "type": ["object", "null"],
+      "description": "Заполняется режимом классификации перезапуска; на первичном запуске null.",
+      "required": ["rerun_launch_id"],
+      "additionalProperties": false,
+      "properties": {
+        "rerun_launch_id": { "type": "integer", "description": "ID rerun-запуска" },
+        "page2_id": { "type": ["string", "null"], "description": "ID страницы «Разбор рерана …»" },
+        "verdict_at": { "type": "string", "description": "ISO-время вердикта" }
+      }
+    }
+  }
+}

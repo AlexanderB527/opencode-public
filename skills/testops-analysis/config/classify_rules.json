@@ -1,0 +1,79 @@
+{
+  "_comment": "Правила классификации ошибок (данные, НЕ код). Команды могут дополнять/менять без правки скриптов. Порядок в error_classes = порядок проверки (первое совпадение). Паттерны — Python-regex (DOTALL). Место: .qa-artifacts/classify_rules.json (или --rules путь).",
+  "categories": {
+    "infra":  ["Инфраструктура (стенд/сеть недоступны)", "Отдать DevOps: поднять стенд/сеть"],
+    "env":    ["Окружение (сервис отдал ошибку/таймаут)", "Отдать DevOps: проверить сервис"],
+    "locator":["Автотест: не найден элемент (локатор)", "Починить тест: обновить локатор"],
+    "testcode":["Автотест: ошибка кода теста", "Починить тест: исправить код/данные теста"],
+    "product":["Дефект продукта", "Завести дефект"],
+    "testdata":["Тестовые данные", "Проверить/обновить данные теста"],
+    "unknown":["Не классифицировано (нужен триаж)", "Триаж: проверить локатор/данные (git)"]
+  },
+  "default_confidence": {
+    "infra": "high", "env": "high", "locator": "medium", "testcode": "high",
+    "product": "medium", "testdata": "medium", "unknown": "low"
+  },
+  "error_classes": [
+    ["Таймаут ожидания элемента", ["Unable to find visible xpath", "Unable to find visible field", "expected to find visible xpath", "Unable to find css", "Capybara::ElementNotFound", "Selenium::WebDriver::Error::TimeoutError", "не дождались элемента"]],
+    ["Таймаут выполнения", ["execution expired", "Failed to open TCP connection", "Connection timed out", "getaddrinfo", "Net::ReadTimeout"]],
+    ["Несовпадение формата даты", ["expected:.*\\d{2}:\\d{2}.*got:.*\\d{1}:\\d{2}", "ведущим нулём", "ведущий ноль"]],
+    ["Ошибка утверждения", ["expected:.*got:", "AssertionError", "expected not to find", "ОР:.*ФР:", "не выделена красным", "не включает в себя"]],
+    ["Ошибка тестовых данных", ["Не удалось создать клиента", "отсутствует в таблице", "undefined method", "nil:NilClass", "NoMethodError"]],
+    ["Элемент не описан в коде", ["не описан в коде", "не описан в page object"]],
+    ["Ошибка переключения фрейма", ["не переключились на фрейм", "No node with given id found"]],
+    ["Неоднозначное совпадение", ["Ambiguous match", "found \\d+ elements matching"]],
+    ["Таймаут ожидания статуса", ["Не дождались статуса", "в течение \\d+ секунд", "в течение \\d+ минут"]],
+    ["Проверка наличия в списке", ["присутствует в списке", "отсутствует в списке"]],
+    ["Утверждение состояния элемента", ["активен", "отображается", "выбран"]],
+    ["Несовпадение данных", ["не совпадает", "не соответствует", "отличается от ожидаемого"]],
+    ["500 Internal Server Error", ["500 Internal Server Error", "500 ошибк"]],
+    ["element click intercepted", ["element click intercepted"]],
+    ["Connection reset by peer", ["Connection reset by peer"]],
+    ["Не удалось создать клиента в EQ и MDM", ["Не удалось создать клиента в EQ"]]
+  ],
+  "semantic_clusters": [
+    {"key": "infra_grid",        "label": "Инфраструктура: грид Selenium недоступен",      "owner": "система", "category": "infra",  "match": ["Failed to open TCP connection to"]},
+    {"key": "infra_timeout",     "label": "Инфраструктура: таймаут выполнения/сети",        "owner": "система", "category": "infra",  "match": ["execution expired", "Net::ReadTimeout", "Connection timed out", "getaddrinfo"]},
+    {"key": "backend_soap",      "label": "Бэкенд: SOAP-ошибка сервиса",                    "owner": "система", "category": "env",    "match": ["soapenv:Server", "ClosedChannelException", "SocketTimeoutException"]},
+    {"key": "product_not_appear","label": "Продукт/данные: задача-коммуникация не появилась","owner": "дефект",  "category": "product","match": ["не появилась", "не найден!", "отсутствует в списке"]},
+    {"key": "testdata_entity",   "label": "Данные: сущность отсутствует в таблице",         "owner": "дефект",  "category": "testdata","match": ["отсутствует в таблице", "Не удалось создать клиента"]},
+    {"key": "testcode_untyped",  "label": "Автотест: элемент не описан в page object",      "owner": "автотест", "category": "testcode","match": ["не описан в коде", "не описан в page object"]},
+    {"key": "locator_ambiguous", "label": "Автотест: неоднозначный локатор",                "owner": "автотест", "category": "locator","match": ["Ambiguous match", "elements matching"]},
+    {"key": "locator_click",     "label": "Автотест: элемент перекрыт (click intercepted)",  "owner": "автотест", "category": "locator","match": ["element click intercepted"]},
+    {"key": "locator_unfound",   "label": "Автотест/система: элемент не найден",            "owner": "автотест", "category": "locator","match": ["Unable to find visible", "expected to find visible", "expected not to find", "Capybara::ElementNotFound", "не дождались элемента"]}
+  ],
+  "_semantic_comment": "Семантические кластеры падений (данные, не код). Первый match сверху. Нет совпадения -> кластер = error_class (fallback).",
+  "class_to_category": {
+    "Таймаут выполнения": "infra",
+    "Connection reset by peer": "infra",
+    "500 Internal Server Error": "env",
+    "Таймаут ожидания элемента": "locator",
+    "Таймаут ожидания статуса": "locator",
+    "Элемент не описан в коде": "testcode",
+    "Неоднозначное совпадение": "locator",
+    "Ошибка переключения фрейма": "testcode",
+    "element click intercepted": "locator",
+    "Ошибка тестовых данных": "testcode",
+    "Несовпадение формата даты": "product",
+    "Ошибка утверждения": "product",
+    "Несовпадение данных": "product",
+    "Проверка наличия в списке": "testdata",
+    "Утверждение состояния элемента": "testdata",
+    "Не удалось создать клиента в EQ и MDM": "testdata",
+    "Другое": "unknown"
+  },
+  "category_to_owner": {
+    "infra": "система", "env": "система",
+    "locator": "автотест", "testcode": "автотест",
+    "product": "дефект", "testdata": "дефект",
+    "unknown": "спор"
+  },
+  "root_cause_patterns": [
+    ["host", "Failed to open TCP connection to\\s+([\\w.\\-]+:\\d+)"],
+    ["xpath", "xpath\\s+\"((?:[^\"\\\\]|\\\\.)*)\""],
+    ["xpath", "(\\.//(?:[^\"\\s\\\\]|\\\\.)+)"],
+    ["css", "css\\s+\"([^\"]+)\""],
+    ["http", "(\\b[45]\\d{2}\\b)\\s*(?:Internal Server Error|ошибк|error)"]
+  ],
+  "rcause_min": 2
+}
