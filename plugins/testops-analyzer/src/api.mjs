@@ -52,20 +52,32 @@ export function testopsConfig() {
   }
 
   if (!url || !token) {
-    throw new Error(
+    throw Object.assign(new Error(
       "TestOps url/token не найдены: проверь mcp.servers.testops.command в opencode.json "
         + "(или ~/.qa-artifacts/config.json)."
-    )
+    ), { code: "UNAVAILABLE" })
   }
   return { url: String(url).replace(/\/+$/, ""), token: String(token) }
 }
 
-function httpsRaw(url, { method = "GET", headers = {}, body = null } = {}) {
+function httpsRaw(url, { method = "GET", headers = {}, body = null, signal, consumeBytes } = {}) {
   return new Promise((resolve, reject) => {
-    const req = request(url, { method, rejectUnauthorized: false, headers, timeout: TIMEOUT_MS }, (res) => {
+    const req = request(url, { method, rejectUnauthorized: false, headers, timeout: TIMEOUT_MS, signal }, (res) => {
       let data = ""
+      let bytes = 0
       res.setEncoding("utf-8")
-      res.on("data", (chunk) => (data += chunk))
+      res.on("error", reject)
+      res.on("data", (chunk) => {
+        if (consumeBytes) {
+          const size = Buffer.byteLength(chunk)
+          bytes += size
+          if (bytes > 4 * 1024 * 1024 || !consumeBytes(size)) {
+            req.destroy(Object.assign(new Error("Response limit"), { code: "LIMIT" }))
+            return
+          }
+        }
+        data += chunk
+      })
       res.on("end", () => resolve({ status: res.statusCode, text: data }))
     })
     req.on("timeout", () => req.destroy(new Error(`таймаут ${TIMEOUT_MS}мс`)))
@@ -75,9 +87,9 @@ function httpsRaw(url, { method = "GET", headers = {}, body = null } = {}) {
   })
 }
 
-async function acquireJwt(base, token) {
+async function acquireJwt(base, token, send) {
   const body = new URLSearchParams({ grant_type: "apitoken", scope: "openid", token }).toString()
-  const res = await httpsRaw(`${base}/api/uaa/oauth/token`, {
+  const res = await send(`${base}/api/uaa/oauth/token`, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
     body,
@@ -94,12 +106,18 @@ async function acquireJwt(base, token) {
 
 // GET + JSON. При 401 — один повтор с новым JWT.
 export async function apiGet(path, { cfg = testopsConfig(), retries = 1 } = {}) {
+  if (cfg.runRequest && !/^\/api\/(?:launch\/\d+|rs\/launch\/\d+\/statistic|v2\/launch\/\d+\/test-result\/flat|testcase\/(?:\d+\/cfv|__search)|testresult\/\d+)(?:\?[^#]*)?$/.test(path)) {
+    throw new Error("Invalid TestOps route")
+  }
+  const send = cfg.runRequest
+    ? (url, options) => cfg.runRequest(signal => httpsRaw(url, { ...options, signal, consumeBytes: cfg.runRequest.consumeBytes }))
+    : httpsRaw
   let lastError = null
   for (let attempt = 0; attempt <= retries; attempt++) {
     const jwt = jwtCache.base === cfg.url && jwtCache.jwt
       ? jwtCache.jwt
-      : await acquireJwt(cfg.url, cfg.token)
-    const res = await httpsRaw(`${cfg.url}${path}`, {
+      : await acquireJwt(cfg.url, cfg.token, send)
+    const res = await send(`${cfg.url}${path}`, {
       headers: { Accept: "application/json", Authorization: `Bearer ${jwt}` },
     })
     if (res.status === 200) {

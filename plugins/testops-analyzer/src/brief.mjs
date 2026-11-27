@@ -280,8 +280,7 @@ export async function buildBrief({
   mode = "QG",
   runKind = "auto",
   withMessages = false,
-} = {}) {
-  const cfg = testopsConfig()
+} = {}, cfg = testopsConfig()) {
   const launchId = parseLaunchId(link)
   const launch = await getLaunch(cfg, launchId)
   const projectId = launch?.projectId ?? null
@@ -336,7 +335,7 @@ export async function buildBrief({
         + `(${results.rows.length}) — запуск менялся во время чтения`,
     )
   }
-  if (tagged.error) warnings.push(`поиск по тегу не удался: ${tagged.error}`)
+  if (tagged.error) warnings.push(cfg.runRequest ? "поиск по тегу не удался" : `поиск по тегу не удался: ${tagged.error}`)
   if (!tagged.complete && !tagged.error && String(tag ?? "").trim()) {
     warnings.push(`поиск по тегу «${tag}» прочитан не полностью — фильтр по тегу может быть неполным`)
   }
@@ -533,7 +532,7 @@ export async function buildBrief({
       skippedExcluded: res.skippedNumbers.length,
       matchedByTeam: res.matchedByTeam,
       includedByTag: res.includedByTag,
-      partial: teamLookupSkipped > 0,
+      partial: teamLookupSkipped > 0 || Boolean(cfg.runRequest && (!tagged.complete || (tag && !projectId))),
       // Полнота чтения — то, чего раньше не было видно в панели.
       complete: results.complete,
       pages: results.pages,
@@ -573,6 +572,7 @@ function compareForSort(a, b) {
 // затем по однозначному номеру эталона, затем по названию запуска). Раньше
 // тег-совпадение добавляло тест в списки ВСЕХ 13 команд — это давало 13 запусков
 // одного и того же теста.
+/** @param {{ link?: string, mode?: string, tag?: string }} [options] */
 export async function collectTeamReruns({ link, mode = "QG", tag = "" } = {}) {
   const cfg = testopsConfig()
   const launchId = parseLaunchId(link)

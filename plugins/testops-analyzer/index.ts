@@ -16,6 +16,7 @@ import { rerunPreview, rerunTeam, rerunAllTeams } from "./src/dispatch.mjs"
 import { truncateTags } from "./src/tags.mjs"
 import { collectTeamReruns } from "./src/brief.mjs"
 import { TTL, cacheKey, markCache, withCache } from "./src/cache.mjs"
+import { registerCodeMode } from "./src/code-mode/tools.ts"
 
 // ── сетевые ошибки по-человечески ────────────────────────────────────────────
 
@@ -264,5 +265,10 @@ export default Plugin.define({
         },
       })
     })
+    try {
+      return await registerCodeMode(ctx)
+    } catch {
+      console.warn("[testops-code-mode] Registration unavailable; existing TestOps tools remain active.")
+    }
   },
 })
